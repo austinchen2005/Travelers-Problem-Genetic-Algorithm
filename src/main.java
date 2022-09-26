@@ -8,7 +8,8 @@ public class main {
     private static double p = 0.05; //mutation rate (per node)
     private static int G = 1000; //number of generations
     private static int S = 100; //number of species; i.e. number of runs of G generations
-    private static int analysis = 1; //-1 if analyzing sequences in generations, 0 if analyzing generations, 1 if analyzing species
+    private static int rD = 100; //reference distance, for easier fitness scaling. MAKE SURE it is impossible to have a sequence with under this distance
+    private static int analysis = 1; //-2 if test, -1 if analyzing sequences in generations, 0 if analyzing generations, 1 if analyzing species
 
     private static int nodes; //number of destinations (cities)
 
@@ -40,39 +41,51 @@ public class main {
     }
 
     public static double fitness1(double distance){
-        return (1.0/distance);
+        distance = distance/rD;
+        return (1.0/(distance));
     }
 
     public static double fitness2(double distance){
+        distance = distance/rD;
         return (1.0/Math.pow(distance,2.0));
     }
 
     public static double fitness3(double distance){
+        distance = distance/rD;
         return (1.0/Math.pow(distance,3.0));
     }
 
+    public static double fitness5(double distance){
+        distance = distance/rD;
+        return (1.0/Math.pow(distance,5.0));
+    }
+
     public static double fitness10(double distance){
-        return (1.0/Math.pow(distance,10.0));
+        distance = distance/rD;
+        return (Math.pow(10.0,10.0)/Math.pow(distance,10.0));
+    }
+
+    public static double fitnessLog100(double distance){
+        distance = distance/rD;
+        return (Math.pow(10.0,10.0)/Math.pow(Math.log(distance),10.0));
     }
 
     //new generation process, how to select parents based on fitness
-    public static int[][] genRoulette(int[][] gen1, int gen){ //roulette selection: probability of selecting is fitness/total fitness
+    public static int[][] nextGeneration(int[][] gen1, int gen){
         //initialization
         int[][] gen2 = new int[N][nodes+1];
-        double[] fitness = new double[N]; //the fitness of each sequence. Fitness = 1/distance; lesser distance, better fitness
-        double F = 0; //Total fitness
+        int[] distances = new int[N]; //distances of each seequence
 
         bestGenDistance = Integer.MAX_VALUE;
 
-        //distance and fitness assignment to each sequence
+        //distance assignment to each sequence
         for(int i=0; i<N; i++){
             int distance = 0;
             int[] seq = gen1[i];
             for(int j=0; j<nodes; j++){
                 distance+=a[seq[j]][seq[j+1]];
             }
-            fitness[i]=fitness3(distance);
-            F+=fitness[i];
+            distances[i]=distance;
             if(distance<bestDistance){
                 bestDistance = distance;
                 bestSequence = seq;
@@ -82,6 +95,30 @@ public class main {
                 bestGenDistance = distance;
                 bestGenSequence = seq;
             }
+        }
+
+        int[] parents = parentsRoulette(distances);
+
+        //mating process
+        for(int i=0; i<N/4; i++){
+            int p1 = parents[2*i];
+            int p2 = parents[2*i+1];
+
+            //create 4 offspring
+            for(int j=0; j<4; j++){
+                gen2[4*i+j]=mutateFrameshift(partialMapCross(gen1[p1],gen1[p2]));
+            }
+        }
+        return gen2;
+    }
+
+    public static int[] parentsRoulette(int[] distances){ //roulette selection: probability of selecting is fitness/total fitness
+        double[] fitness = new double[N]; //the fitness of each sequence. Fitness = 1/distance; lesser distance, better fitness
+        double F = 0; //Total fitness
+
+        for(int i=0; i<N; i++){
+            fitness[i]=fitness3(distances[i]);
+            F+=fitness[i];
         }
 
         //creation of list from 1 to N to keep track of unselected sequences
@@ -103,20 +140,7 @@ public class main {
             F-=fitness[thing[j-1]];
         }
 
-        //mating process
-        for(int i=0; i<N/4; i++){
-            int p1 = parents[2*i];
-            int p2 = parents[2*i+1];
-
-            //create 4 offspring
-            for(int j=0; j<4; j++){
-                gen2[4*i+j]=mutateFrameshift(partialMapCross(gen1[p1],gen1[p2]));
-            }
-        }
-
-
-
-//        for(int i=0; i<N; i++){
+        //        for(int i=0; i<N; i++){
 //            System.out.print("Fitness "+fitness[i]+" of: ");
 //            for(int j=0; j<nodes+1; j++){
 //                System.out.print(gen1[i][j]+" ");
@@ -132,7 +156,7 @@ public class main {
 //            System.out.println();
 //        }
 
-        return gen2;
+        return parents;
     }
 
     //crossing over (mating process)
@@ -250,6 +274,27 @@ public class main {
         return seq;
     }
 
+    public static int[] mutateInversion(int[] seq){
+        //For each node, if probability p, then another node is selected, the sequence between and containing the nodes are inversed
+        for(int i=1; i<nodes-1; i++){
+            double r = Math.random();
+            if(r<p){
+                int first = i;
+                int other = (int)(Math.random()*(nodes-3)+1);
+                if(other>i){
+                    first = first;
+                    other = other;
+                }
+                else{
+                    int copy = first;
+                    first = other;
+                    other = copy;
+                }
+            }
+        }
+        return seq;
+    }
+
     public static void main(String[] args) throws IOException {
         //initialization
         BufferedReader file = new BufferedReader(new FileReader("in1"));
@@ -274,7 +319,24 @@ public class main {
 ////            System.out.println();
 ////        }
 
-        if(analysis==0||analysis==-1) {
+        if(analysis==-2){ //mutation testing
+            int thing[] = new int[nodes+1];
+            thing[0] = 0;
+            thing[nodes] = 0;
+            for(int i=1; i<nodes; i++){
+                thing[i]=i;
+            }
+            for(int i=1; i<=1000; i++){
+                thing = mutateFrameshift(thing);
+                System.out.print("After "+i+" mutations: ");
+                for(int j:thing){
+                    System.out.print(j+" ");
+                }
+                System.out.println();
+            }
+        }
+
+        else if(analysis==0||analysis==-1) {
 
             //creating zeroth generation
             seqs = new int[N][nodes+1];
@@ -284,7 +346,7 @@ public class main {
 
             //running generations
             for (int k = 0; k < G; k++) {
-                seqs = genRoulette(seqs, k);
+                seqs = nextGeneration(seqs, k);
                 System.out.println("Best Distance of Generation " + (k) + ": " + bestGenDistance);
                 System.out.print("Best Sequence of Generation " + (k) + ": ");
                 for (int i : bestGenSequence) {
@@ -325,7 +387,7 @@ public class main {
                 }
 
                 for (int k = 0; k < G; k++) {
-                    seqs = genRoulette(seqs, k);
+                    seqs = nextGeneration(seqs, k);
                 }
 
                 bestDistanceTotal+=bestDistance;
