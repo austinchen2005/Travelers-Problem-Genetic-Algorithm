@@ -5,7 +5,7 @@ import java.math.*;
 
 public class main {
     private static int N = 100; //population size; MUST BE DIVISIBLE BY 4 (mating reasons)
-    private static double p = 0.05; //mutation rate (per node)
+    private static double p = 0.02; //mutation rate (per node)
     private static int G = 1000; //number of generations
     private static int S = 100; //number of species; i.e. number of runs of G generations
     private static int rD = 100; //reference distance, for easier fitness scaling. MAKE SURE it is impossible to have a sequence with under this distance
@@ -97,7 +97,7 @@ public class main {
             }
         }
 
-        int[] parents = parentsRoulette(distances);
+        int[] parents = parentsTop50(distances);
 
         //mating process
         for(int i=0; i<N/4; i++){
@@ -155,6 +155,41 @@ public class main {
 //            }
 //            System.out.println();
 //        }
+
+        return parents;
+    }
+
+    public static int[] parents1v1(int[] distances){
+        //Each pair in the generation, i.e. indices 0&1,2&3, etc., has the lowest distance in the pair become a parent.
+        int[] parents = new int[N/2];
+        for(int i=0; i<N/2; i++){
+            if(distances[2*i]<distances[2*i+1]){
+                parents[i]=2*i;
+            }
+            else{
+                parents[i]=2*i+1;
+            }
+        }
+        return parents;
+    }
+
+    public static int[] parentsTop50(int[] distances){
+        //Take the full ranking of the generation and top 50% becomes parents. Beware of this taking a long time with large N (QuickSort bigN=N^2)
+        int[] parents = new int[N/2];
+        QuickSort ob = new QuickSort();
+        //indices keep track of the initial positions, the 'key' for each sequence. This is needed because parents stores the positions of the sequences, not the sequences themselves.
+        int[] indices = new int[N];
+
+        for(int i=0; i<N; i++){
+            indices[i]=i;
+        }
+
+        ob.sort(distances, 0, N-1, indices);
+
+        //take the N/2 LEAST distances
+        for(int i=0; i<N/2; i++){
+            parents[i]=indices[i];
+        }
 
         return parents;
     }
