@@ -9,7 +9,7 @@ public class main {
     private static int G = 1000; //number of generations
     private static int S = 20; //number of species; i.e. number of runs of G generations
     private static int rD = 100; //reference distance, for easier fitness scaling. MAKE SURE it is impossible to have a sequence with under this distance
-    private static int analysis = 1; //-2 if test, -1 if analyzing sequences in generations, 0 if analyzing generations, 1 if analyzing species
+    private static int analysis = 1; //-2 if Mutation Testing, -1 if analyzing sequences in generations, 0 if analyzing generations, 1 if analyzing species
 
     private static int nodes; //number of destinations (cities)
 
@@ -106,7 +106,7 @@ public class main {
 
             //create 4 offspring
             for(int j=0; j<4; j++){
-                gen2[4*i+j]=mutateFrameshift(partialMapCross(gen1[p1],gen1[p2]));
+                gen2[4*i+j]=mutateInversion(partialMapCross(gen1[p1],gen1[p2]));
             }
         }
         return gen2;
@@ -291,7 +291,7 @@ public class main {
                 //case where we're moving node up, thus frameshifting down
                 if(other>=i){
                     int copy = seq[i];
-                    for(int j=i; j<other; j++){
+                    for(int j=i; j<=other; j++){
                         seq[j]=seq[j+1];
                     }
                     seq[other]=copy;
@@ -299,7 +299,7 @@ public class main {
                 //case where we're moving node down, thus frameshifting up
                 else{
                     int copy = seq[i];
-                    for(int j=i; j>other; j--){
+                    for(int j=i; j>=other; j--){
                         seq[j]=seq[j-1];
                     }
                     seq[other]=copy;
@@ -324,6 +324,13 @@ public class main {
                     int copy = first;
                     first = other;
                     other = copy;
+                }
+                int[] subSeq = new int[other-first+1];
+                for(int j=first; j<=other; j++){
+                    subSeq[j-first]=seq[j];
+                }
+                for(int j=first; j<=other; j++){
+                    seq[j]=subSeq[other-j];
                 }
             }
         }
@@ -358,7 +365,7 @@ public class main {
                 thing[i]=i;
             }
             for(int i=1; i<=1000; i++){
-                thing = mutateFrameshift(thing);
+                thing = mutateInversion(thing);
                 System.out.print("After "+i+" mutations: ");
                 for(int j:thing){
                     System.out.print(j+" ");
