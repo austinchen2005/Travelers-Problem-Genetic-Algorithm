@@ -7,7 +7,7 @@ public class main {
     private static int N = 100; //population size; MUST BE DIVISIBLE BY 4 (mating reasons)
     private static double p = 0.02; //mutation rate (per node)
     private static int G = 1000; //number of generations
-    private static int S = 100; //number of species; i.e. number of runs of G generations
+    private static int S = 20; //number of species; i.e. number of runs of G generations
     private static int rD = 100; //reference distance, for easier fitness scaling. MAKE SURE it is impossible to have a sequence with under this distance
     private static int analysis = 1; //-2 if test, -1 if analyzing sequences in generations, 0 if analyzing generations, 1 if analyzing species
 
@@ -112,6 +112,7 @@ public class main {
         return gen2;
     }
 
+    
     public static int[] parentsRoulette(int[] distances){ //roulette selection: probability of selecting is fitness/total fitness
         double[] fitness = new double[N]; //the fitness of each sequence. Fitness = 1/distance; lesser distance, better fitness
         double F = 0; //Total fitness
@@ -289,7 +290,6 @@ public class main {
                 int other = (int)(Math.random()*(nodes-3)+1);
                 //case where we're moving node up, thus frameshifting down
                 if(other>=i){
-                    other++;
                     int copy = seq[i];
                     for(int j=i; j<other; j++){
                         seq[j]=seq[j+1];
@@ -332,7 +332,7 @@ public class main {
 
     public static void main(String[] args) throws IOException {
         //initialization
-        BufferedReader file = new BufferedReader(new FileReader("in1"));
+        BufferedReader file = new BufferedReader(new FileReader("ATT48.in"));
         String line = file.readLine();
         nodes = Integer.parseInt(line);
 
@@ -341,18 +341,14 @@ public class main {
         for(int i=0; i<nodes; i++){
             line = file.readLine();
             String[] thing = line.split(" ");
-            for(int j=0; j<nodes; j++){
-                a[i][j] = Integer.parseInt(thing[j]);
+            int count = 0;
+            for(String thingy:thing){
+                if(!thingy.equals("")){
+                    a[i][count] = Integer.parseInt(thingy);
+                    count++;
+                }
             }
         }
-
-//        System.out.println("Generation 0: ");
-////        for(int i=0; i<N; i++){
-////            for(int j=0; j<nodes+1; j++){
-////                System.out.print(seqs[i][j]+" ");
-////            }
-////            System.out.println();
-////        }
 
         if(analysis==-2){ //mutation testing
             int thing[] = new int[nodes+1];
